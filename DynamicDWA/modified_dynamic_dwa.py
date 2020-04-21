@@ -37,7 +37,7 @@ class Environment:
         # Initiate obstacles
         self.OBSTACLE_RADIUS = 0.10
         self.OBSTACLE_MAX_VEL = 0.15
-        self.obstacles = []
+        self.obstacles = []  # obstalces list
         self.init_obstacle_num = 40
         for i in range(self.init_obstacle_num):
             pos_x = random.uniform(self.PLAYFIELDCORNERS[0], self.PLAYFIELDCORNERS[2])
@@ -191,6 +191,7 @@ class Environment:
     
 
 class NewDWA:
+    """ Collision avoidance algorithm """
     def __init__(self, init_pose=(0, 0, 0), config=(0.10, 0, 0, 0)):
         # parameters of robot
         self.ROBOT_RADIUS = 0.10
@@ -263,7 +264,18 @@ class NewDWA:
 
 
     def calculateClosestObstacleDistance(self, predict_x, predict_y, goal_index, obstacles):
-        """ Calculate  distance to closest obstacle """
+        """ Calculate  distance to closest obstacle 
+            
+            @param predict_x: predicted x coordiante of robot
+
+            @param predict_y: predicted y coordiante of robot
+
+            @param goal_index: goal's index in obstacles' list(that is goal comes from osbtacles list)
+
+            @param obstacles: contains obstacles' information,that is [pos_x, pos_y, vx, vy] 
+
+            @return: distance between robot and closest obstacle
+        """
         closestdist = 100000.0  
         for (idx, obstacle) in enumerate(obstacles):
             if idx == goal_index:
