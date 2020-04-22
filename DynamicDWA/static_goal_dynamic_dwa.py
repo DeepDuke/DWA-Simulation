@@ -214,7 +214,7 @@ class NewDWA:
     """ Collision avoidance algorithm """
     def __init__(self, init_pose=(0, 0, 0), config=(0.10, 0, 0, 0)):
         # parameters of robot
-        self.ROBOT_RADIUS = 0.10
+        self.ROBOT_RADIUS = 0.25
         # Linear velocity limits
         self.MAX_VEL_LINEAR = 0.5     # ms^(-1) max speed of each wheel
         self.MAX_ACC_LINEAR = 0.5     # ms^(-2) max rate we can change speed of each wheel
@@ -368,7 +368,7 @@ class NewDWA:
        
 if __name__ == '__main__':
     env = Environment(NewDWA)
-    while 1:
+    while Environment.sim_times <= 1000:
         if Environment.sim_over == True:
             # Start a new simualtion 
             env = Environment(NewDWA)
@@ -376,3 +376,10 @@ if __name__ == '__main__':
             print('Finished Simulation Times: #{}\tCollision Times: #{}'.format(Environment.sim_times, Environment.collision_times))
         env.run()
         time.sleep(0.01)
+    print("\n" + "* "*100 + "\n")
+    print("Collision Rate:\t[{}/{}={:.2f}]".format(
+        Environment.collision_times, 
+        Environment.sim_times, 
+        Environment.collision_times/Environment.sim_times)
+        )
+    print("\n" + "* "*100 + "\n")    
