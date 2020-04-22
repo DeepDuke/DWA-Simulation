@@ -13,6 +13,7 @@ class Environment:
     sim_over = False  # indicates whether a simulation is over or not
     sim_times = 0  # num of simulation times
     collision_times = 0  # num of collision times during all simulations
+    avg_tg = 0
     def __init__(self, agent):   
         # Record simlation times
         Environment.sim_times += 1     
@@ -55,9 +56,10 @@ class Environment:
         
         # Simulatation time interval
         self.dt = 0.1
+        self.time_to_goal = 0.0
         # Initiate robot's goal
         self.goal = (self.PLAYFIELDCORNERS[2]-0.5, self.PLAYFIELDCORNERS[3]-0.5)
-        self.goal_flag = False  # True if robot reached athe goal
+        self.goal_flag = False  # True if robot reached the goal
         # Initiate pose of robot
         self.init_x = self.PLAYFIELDCORNERS[0] + 0.5
         self.init_y = self.PLAYFIELDCORNERS[1] + 0.5
@@ -180,6 +182,7 @@ class Environment:
     def run(self):
         """ Do simulation """
         # Start simulation
+        self.time_to_goal += self.dt
         predicted_path_to_draw = []
         # Save robot's locations for display of trail
         self.history_positions.append((self.agent.x, self.agent.y))
@@ -198,8 +201,10 @@ class Environment:
         if self.goal_flag == False and self.collision_times == 0 and round(dist_to_goal, 3) < 0.5*self.agent.ROBOT_RADIUS:
             self.goal_flag = True
             print('Arrive at the goal, Simulation finished!')
+            print('tg:  {:.4f}'.format(self.time_to_goal))
             Environment.sim_over = True
             Environment.sim_times += 1
+            Environment.avg_tg = ((Environment.sim_times - 1)*Environment.avg_tg+self.time_to_goal)/Environment.sim_times
         if self.goal_flag == False and self.collision_times == 0:
             # Move obstacles
             self.move_obstacles()
@@ -214,7 +219,7 @@ class NewDWA:
     """ Collision avoidance algorithm """
     def __init__(self, init_pose=(0, 0, 0), config=(0.10, 0, 0, 0)):
         # parameters of robot
-        self.ROBOT_RADIUS = 0.25
+        self.ROBOT_RADIUS = 0.10
         # Linear velocity limits
         self.MAX_VEL_LINEAR = 0.5     # ms^(-1) max speed of each wheel
         self.MAX_ACC_LINEAR = 0.5     # ms^(-2) max rate we can change speed of each wheel
@@ -362,6 +367,8 @@ class NewDWA:
     def move_robot(self):
         """ Move robot based on chosen velocities in dt time"""
         self.x, self.y, self.theta, tmp_path = self.predict_position(self.linear_vel, self.angular_vel, self.dt) 
+        if self.theta < -math.pi:
+            print('Theta is small than pi with value:\t{}'.format(self.theta))
 
     
 
