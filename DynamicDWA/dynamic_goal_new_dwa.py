@@ -188,12 +188,13 @@ class Environment:
 
     def run(self):
         """ Do simulation """
+        # Reset 
         if self.goal_flag == True:
                 self.goal_flag = False
                 self.time_to_goal = 0
                 self.collision_times = 0
         while self.goal_flag == False:
-            print("Sim times:{}".format(Environment.sim_times))
+            # print("Sim times:{}".format(Environment.sim_times))
             # t_start = time.time()
             # Start simulation
             self.time_to_goal += self.dt
@@ -251,7 +252,7 @@ class Environment:
 
 class NewDWA:
     """ Collision avoidance algorithm """
-    def __init__(self, init_pose=(0, 0, 0), config=(0.10, 0, 0, 0)):
+    def __init__(self, init_pose=(0, 0, 0), config=(0.10, 0, 0, math.pi/2)):
         # parameters of robot
         self.ROBOT_RADIUS = 0.10
         # Linear velocity limits
@@ -433,7 +434,7 @@ if __name__ == '__main__':
     
     # Save tg_vec into txt file
     tg_file = pd.DataFrame(data=[[Environment.tg_vec, Environment.vl_vec, Environment.vr_vec]], columns=["tg", "vl", "vr"])
-    tg_file.to_csv("static_new_dwa_tg{}.csv".format(env.init_obstacle_num))
+    tg_file.to_csv("dynamic_new_dwa_tg{}.csv".format(env.init_obstacle_num))
     # Plot
     plt.figure()
     plt.plot(list(range(len(Environment.tg_vec))), Environment.tg_vec, 'bo', list(range(len(Environment.tg_vec))), Environment.tg_vec, 'k')
