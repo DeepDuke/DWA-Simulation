@@ -4,6 +4,7 @@ import pygame, os, math, time, random, copy
 from pygame.locals import *
 import time
 import pandas as pd 
+from matplotlib import pyplot as plt 
 
 
 class Environment:
@@ -395,7 +396,7 @@ class NewDWA:
        
 if __name__ == '__main__':
     env = Environment(NewDWA)
-    while Environment.sim_times <= 1000:
+    while Environment.sim_times <= 10:
         if Environment.sim_over == True:
             print('Finished Simulation Times: #{}\tCollision Times: #{}'.format(Environment.sim_times, Environment.collision_times))
             # Start a new simualtion 
@@ -413,5 +414,24 @@ if __name__ == '__main__':
     print("\n" + "* "*50 + "\n")
     
     # Save tg_vec into txt file
-    tg_file = pd.DataFrame(data=[Environment.tg_vec, Environment.vl_vec, Environment.vr_vec], columns=["tg", "vl", "vr"])
+    tg_file = pd.DataFrame(data=[[Environment.tg_vec, Environment.vl_vec, Environment.vr_vec]], columns=["tg", "vl", "vr"])
     tg_file.to_csv("static_new_dwa_tg{}.csv".format(env.init_obstacle_num))
+    # Plot
+    plt.figure()
+    plt.plot(list(range(len(Environment.tg_vec))), Environment.tg_vec, 'bo', list(range(len(Environment.tg_vec))), Environment.tg_vec, 'k')
+    plt.title("time to goal")
+    plt.xlabel("simulation times")
+    plt.ylabel("tg(sec)")
+
+    plt.figure()
+    plt.subplot(211)
+    plt.plot(list(range(len(Environment.vl_vec))), Environment.vl_vec, 'r', label="linear velocity")
+    plt.xlabel("simulation steps")
+    plt.ylabel("vl(m/s)")
+    plt.legend(loc="upper right")
+    plt.subplot(212)
+    plt.plot(list(range(len(Environment.vr_vec))), Environment.vr_vec, 'g', label="angular velocity")
+    plt.xlabel("simulation steps")
+    plt.ylabel("vr(rad/s)")
+    plt.legend(loc="upper right")
+    plt.show()
