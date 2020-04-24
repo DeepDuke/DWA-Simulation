@@ -410,7 +410,7 @@ if __name__ == '__main__':
         Environment.sim_times-1, 
         Environment.collision_times/(Environment.sim_times-1)*100)
         )
-    print('Average time to goal:\t{:.2f}secs'.format(Environment.avg_tg))
+    print('Average time to goal:\t{:.2f} secs'.format(Environment.avg_tg))
     print("\n" + "* "*50 + "\n")
     
     # Save tg_vec into txt file
