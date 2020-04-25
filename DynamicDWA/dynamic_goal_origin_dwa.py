@@ -11,21 +11,10 @@ class Environment:
     """ Simulation Environment contains moving obstacles 
         and agent which performs collision aovidance algorithm.
     """
-    # Class public variables
-    sim_over = False  # indicates whether a simulation is over or not
-    sim_times = 0  # num of simulation times
-    collision_times = 0  # num of collision times during all simulations
-    avg_tg = 0
-    tg_vec = []
-    vl_vec = []
-    vr_vec = []
-    def __init__(self, agent):        
-        # Record simlation times
-        # Environment.sim_times += 1 
-        # set the width and height of the screen (pixels)
+    def __init__(self, algorithm, num_obstacles):        
         # The region we will fill with obstacles
         self.PLAYFIELDCORNERS = (-4.0, -3.0, 4.0, 3.0)
-        self.WIDTH = 1500
+        self.WIDTH = 1500  # set the width and height of the screen (pixels)
         self.HEIGHT = 1000
         self.size = [self.WIDTH, self.HEIGHT]
         self.black = (20,20,40)
@@ -34,23 +23,49 @@ class Environment:
         self.red = (255,100,0)
         self.white = (255,255,255)
         self.blue = (0,0,255)
-        self.grey = (70,70,70)
-
-        # Constants for graphics display
-        # Transformation from metric world frame to graphics frame
-        # k pixels per metre
-        # Horizontal screen coordinate:     u = u0 + k * x
-        # Vertical screen coordinate:       v = v0 - k * y
-        self.k = 160 # pixels per metre for graphics
+        self.grey = (70,70,70)       
         # Screen center will correspond to (x, y) = (0, 0)
-        self.u0 = self.WIDTH / 2
-        self.v0 = self.HEIGHT / 2
-        
-        # Initiate obstacles
+        self.k = 160               # pixels per metre for graphics
+        self.u0 = self.WIDTH / 2   # Horizontal screen coordinate:     u = u0 + k * x
+        self.v0 = self.HEIGHT / 2  # Vertical screen coordinate:       v = v0 - k * y
+        # Configure parameters for visulization in pygame
+        pygame.init()
+        # Initialise Pygame display screen
+        self.screen = pygame.display.set_mode(self.size)
+        # This makes the normal mouse pointer invisible/visible (0/1) in graphics window
+        pygame.mouse.set_visible(1)
+
+        # Simulatation time interval
+        self.dt = 0.1
+        # Initiate obstacle's parameters
         self.OBSTACLE_RADIUS = 0.10
         self.OBSTACLE_MAX_VEL = 0.15
+        self.init_obstacle_num = num_obstacles
+        self.init_obstacle_num = self.init_obstacle_num + 1  # add goal      
+        # Initiate pose of robot
+        self.init_x = self.PLAYFIELDCORNERS[0] + 0.5
+        self.init_y = self.PLAYFIELDCORNERS[1] + 0.5
+        self.init_theta = 0.0
+        self.init_pose = (self.init_x, self.init_y, self.init_theta)
+        self.config = (self.dt, self.k, self.u0, self.v0, self.OBSTACLE_RADIUS)
+        # Algorithm for collision avoidance
+        self.alg = algorithm
+        # Global parameters for evaluate algorithms
+        self.sim_times = 0  # num of simulation times
+        self.collision_times = 0  # num of collision times during all simulations
+        self.avg_tg = 0
+        self.tg_vec = []
+        self.vl_vec = []
+        self.vr_vec = []
+        # Set moving things
+        self.reset()
+        
+
+    def reset(self):
+        # Reset time to reach the goal in one simulation
+        self.time_to_goal = 0.0
+        # Reset obstacles list
         self.obstacles = []  # obstalces list
-        self.init_obstacle_num = 10
         for i in range(self.init_obstacle_num):
             pos_x = random.uniform(self.PLAYFIELDCORNERS[0], self.PLAYFIELDCORNERS[2])
             pos_y = random.uniform(self.PLAYFIELDCORNERS[1], self.PLAYFIELDCORNERS[3])
@@ -58,33 +73,18 @@ class Environment:
             vy = random.gauss(0.0, self.OBSTACLE_MAX_VEL)
             obstacle = [pos_x, pos_y, vx, vy]
             self.obstacles.append(obstacle)
-        
-        # Simulatation time interval
-        self.dt = 0.1
-        self.time_to_goal = 0.0
-        # Initiate robot's goal
+        # Reset agent
+        self.agent = self.alg(self.init_pose, self.config)
+        # Reset robot's goal
         self.goal_index = random.randint(0, len(self.obstacles)-1)
-        self.goal_flag = False  # True if robot reached the goal
-        # print('Initial goal index: {}'.format(self.goal_index))
-        # Initiate pose of robot
-        self.init_x = self.PLAYFIELDCORNERS[0] + 0.5
-        self.init_y = self.PLAYFIELDCORNERS[1] + 0.5
-        self.init_theta = 0.0
-        init_pose = (self.init_x, self.init_y, self.init_theta)
-        config = (self.dt, self.k, self.u0, self.v0, self.OBSTACLE_RADIUS)
-        self.agent = agent(init_pose, config)
-        # Record robot's history positions and paths
+        self.sim_over = False  # True if robot reached the goal
+        # Reset collision flag
+        self.collision_happened = False
+        # Reset robot's history positions and paths in each simulation
         self.history_positions = []
         self.history_vl_vec = []
         self.history_vr_vec = []
-        # Configure parameters for visulization in pygame
-        pygame.init()
-        # Initialise Pygame display screen
-        self.screen = pygame.display.set_mode(self.size)
-        # This makes the normal mouse pointer invisible/visible (0/1) in graphics window
-        pygame.mouse.set_visible(1)
-        # Record collision times
-        self.collision_times = 0
+
 
     def move_obstacles(self):
         """ Update locations and velocties of moving obstacles"""
@@ -183,26 +183,21 @@ class Environment:
             ox, oy = obstacle[0], obstacle[1]
             dist = math.sqrt((ox-self.agent.x)**2 + (oy-self.agent.y)**2)
             if dist < self.agent.ROBOT_RADIUS + self.OBSTACLE_RADIUS:  # Collision happened
+                self.collision_happened = True
                 self.collision_times += 1
-                Environment.collision_times += 1
+     
 
     def run(self):
         """ Do simulation """
-        # Reset 
-        if self.goal_flag == True:
-                self.goal_flag = False
-                self.time_to_goal = 0
-                self.collision_times = 0
-        while self.goal_flag == False:
-            # print("Sim times:{}".format(Environment.sim_times))
-            # t_start = time.time()
+        if self.sim_over == True:
+            self.reset()
+        while self.sim_over == False:
             # Start simulation
             self.time_to_goal += self.dt
             predicted_path_to_draw = []
             # Save robot's locations for display of trail
             self.history_positions.append((self.agent.x, self.agent.y))
             # Planning velocities and path
-            # print('goal_index:\t', self.goal_index)
             predicted_path_to_draw, vLchosen, vRchosen = self.agent.planning(self.goal_index, self.obstacles)
             self.history_vl_vec.append(vLchosen)
             self.history_vr_vec.append(vRchosen)
@@ -212,43 +207,27 @@ class Environment:
             self.check_collsion()
             # Check if arrive at the goal
             goal = self.obstacles[self.goal_index]
-            if self.goal_flag == False and self.collision_times > 0:
-                Environment.sim_over = True
-                Environment.sim_times += 1
-                print('#{}\tCollision happened during simulation !'.format(Environment.sim_times))
-                # break
-            # Check if arrive at the goal
             dist_to_goal = math.sqrt((self.agent.x-goal[0])**2 + (self.agent.y-goal[1])**2)
-            if self.goal_flag == False and self.collision_times == 0 and round(dist_to_goal, 3) < self.agent.ROBOT_RADIUS+self.OBSTACLE_RADIUS:
-                self.goal_flag = True
-                # Remove old goal obstacle
-                pos_x = random.uniform(self.PLAYFIELDCORNERS[0], self.PLAYFIELDCORNERS[2])
-                pos_y = random.uniform(self.PLAYFIELDCORNERS[1], self.PLAYFIELDCORNERS[3])
-                vx = random.gauss(0.0, self.OBSTACLE_MAX_VEL)
-                vy = random.gauss(0.0, self.OBSTACLE_MAX_VEL)
-                new_obstacle = [pos_x, pos_y, vx, vy]
-                self.obstacles[self.goal_index] = new_obstacle
-                # Set a new goal
-                self.goal_index = random.randint(0, len(self.obstacles)-1)
-                Environment.sim_over = True
-                Environment.sim_times += 1
-                Environment.tg_vec.append(self.time_to_goal)
-                Environment.vl_vec.extend(self.history_vl_vec)
-                Environment.vr_vec.extend(self.history_vr_vec)
-                Environment.avg_tg = ((Environment.sim_times - 1)*Environment.avg_tg+self.time_to_goal)/Environment.sim_times
-                print( '#{}\tArrive at the goal, Simulation finished!  tg:  {:.4f}'.format(Environment.sim_times, self.time_to_goal))
-                # break
-            if self.goal_flag == False and self.collision_times == 0:
-                # Move obstacles
-                self.move_obstacles()
-                # print('Moving Obstacles')
-                # Move robot
-                self.agent.move_robot()
-                # print('Moving Robots')
-            # t_end = time.time()
-            # print('FPS:{:.2f}, Decision Time:{:.2f}'.format(1/(t_end-t_start), t_end-t_start))
+            if self.sim_over == False and self.collision_happened == True:
+                self.sim_times += 1
+                self.sim_over = True
+                print('#{} \t Failure \t [tg:  None] \t  [total collision times:{}]'.format(self.sim_times, self.collision_times))
+                time.sleep(1)
+                break
+            elif round(dist_to_goal, 3) < self.agent.ROBOT_RADIUS + self.OBSTACLE_RADIUS:
+                self.sim_over = True
+                self.sim_times += 1
+                self.tg_vec.append(self.time_to_goal)
+                self.vl_vec.extend(self.history_vl_vec)
+                self.vr_vec.extend(self.history_vr_vec)
+                self.avg_tg = ((self.sim_times - 1)*self.avg_tg+self.time_to_goal)/self.sim_times
+                print( '#{} \t Success \t [tg:  {:.2f}] \t [total collision times:{}]'.format(self.sim_times, self.time_to_goal, self.collision_times))
+                break
+            else :
+                self.move_obstacles()   # Move obstacles
+                self.agent.move_robot()  # Move robot
+ 
 
-    
 
 class DWA:
     """ Collision avoidance algorithm """
@@ -273,9 +252,9 @@ class DWA:
         # Safe distance between robot and closest obstacle after minus robot's radius and obstacle's radius
         self.SAFE_DIST = self.ROBOT_RADIUS   #  
         # Weights for predicted trajectory evaluation
-        self.heading_gain = 50
-        self.dist_obstacle_gain = 35
-        self.vel_gain = 2
+        self.heading_gain = 2
+        self.dist_obstacle_gain = 5
+        self.vel_gain = 1
 
 
     def predict_position(self, vLpossible, vRpossible, delta_time):
@@ -458,47 +437,40 @@ class DWA:
         self.x, self.y, self.theta, tmp_path = self.predict_position(self.linear_vel, self.angular_vel, self.dt) 
 
     
-
-       
 if __name__ == '__main__':
-    env = Environment(DWA)
-    while Environment.sim_times <= 10:
+    env = Environment(DWA, 10)
+    while env.sim_times < 100:
         env.run()
-    # while Environment.sim_times <= 10:
-    #     if Environment.sim_over == True:
-    #         print('Finished Simulation Times: #{}\tCollision Times: #{}'.format(Environment.sim_times, Environment.collision_times))
-    #         # Start a new simualtion 
-    #         env = Environment(NewDWA)
-    #         Environment.sim_over = False
-    #     env.run()
-    #     # time.sleep(0.01)
-    print("\n" + "* "*50 + "\n")
+
+    print("\n" + "* "*30 + "\n")
     print("Collision Rate:\t[{}/{}={:.2f}%]".format(
-        Environment.collision_times, 
-        Environment.sim_times-1, 
-        Environment.collision_times/(Environment.sim_times-1)*100)
+        env.collision_times, 
+        env.sim_times, 
+        env.collision_times/(env.sim_times)*100)
         )
-    print('Average time to goal:\t{:.2f} secs'.format(Environment.avg_tg))
-    print("\n" + "* "*50 + "\n")
+    print('Average time to goal:\t{:.2f} secs'.format(env.avg_tg))
+    print("\n" + "* "*30 + "\n")
     
     # Save tg_vec into txt file
-    tg_file = pd.DataFrame(data=[[Environment.tg_vec, Environment.vl_vec, Environment.vr_vec]], columns=["tg", "vl", "vr"])
-    tg_file.to_csv("dynamic_origin_dwa_tg{}.csv".format(env.init_obstacle_num))
+    tg_file = pd.DataFrame(data=env.tg_vec, columns=["tg"])
+    tg_file.to_csv("dynamic_origin_dwa_tg{}.csv".format(env.init_obstacle_num-1))
+    vel_vec = [[env.vl_vec[idx], env.vr_vec[idx]] for idx in range(len(env.vl_vec))]
+    vel_file = pd.DataFrame(data=vel_vec, columns=["vl", "vr"])
+    vel_file.to_csv("dynamic_origin_dwa_vel{}.csv".format(env.init_obstacle_num-1))
     # Plot
     plt.figure()
-    plt.plot(list(range(len(Environment.tg_vec))), Environment.tg_vec, 'bo', list(range(len(Environment.tg_vec))), Environment.tg_vec, 'k')
+    plt.plot(list(range(len(env.tg_vec))), env.tg_vec, 'bo', list(range(len(env.tg_vec))), env.tg_vec, 'k')
     plt.title("time to goal")
     plt.xlabel("simulation times")
     plt.ylabel("tg(sec)")
-
     plt.figure()
     plt.subplot(211)
-    plt.plot(list(range(len(Environment.vl_vec))), Environment.vl_vec, 'r', label="linear velocity")
+    plt.plot(list(range(len(env.vl_vec))), env.vl_vec, 'r', label="linear velocity")
     plt.xlabel("simulation steps")
     plt.ylabel("vl(m/s)")
     plt.legend(loc="upper right")
     plt.subplot(212)
-    plt.plot(list(range(len(Environment.vr_vec))), Environment.vr_vec, 'g', label="angular velocity")
+    plt.plot(list(range(len(env.vr_vec))), env.vr_vec, 'g', label="angular velocity")
     plt.xlabel("simulation steps")
     plt.ylabel("vr(rad/s)")
     plt.legend(loc="upper right")
