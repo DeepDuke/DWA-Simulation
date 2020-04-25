@@ -1,4 +1,4 @@
-## Simualation for DWA and modified DWA algorithms
+## Simulation for DWA and modified DWA algorithms
 
 ### Simulate algorithms with static  goal point(orange circle)
 ![Dynamic Goal](Images/static_goal.png)
