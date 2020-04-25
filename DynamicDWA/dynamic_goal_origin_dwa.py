@@ -221,7 +221,7 @@ class Environment:
                 self.sim_times += 1
                 self.sim_over = True
                 print('#{} \t Failure \t [tg:  None] \t  [total collision times:{}]'.format(self.sim_times, self.collision_times))
-                time.sleep(1)
+                # time.sleep(1)
                 break
             elif round(dist_to_goal, 3) < self.agent.ROBOT_RADIUS + self.OBSTACLE_RADIUS:
                 self.sim_over = True
@@ -447,8 +447,8 @@ class DWA:
 
     
 if __name__ == '__main__':
-    env = Environment(DWA, 10)
-    while env.sim_times < 10:
+    env = Environment(DWA, 20)
+    while env.sim_times < 100:
         env.run()
 
     env.avg_tg = sum(env.tg_vec)/len(env.tg_vec)

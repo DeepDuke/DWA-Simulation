@@ -221,7 +221,7 @@ class Environment:
                 self.sim_times += 1
                 self.sim_over = True
                 print('#{} \t Failure \t [tg:  None] \t  [total collision times:{}]'.format(self.sim_times, self.collision_times))
-                time.sleep(1)
+                # time.sleep(1)
                 break
             elif round(dist_to_goal, 3) < self.agent.ROBOT_RADIUS + self.OBSTACLE_RADIUS:
                 self.sim_over = True
@@ -231,6 +231,7 @@ class Environment:
                 self.vr_vec.extend(self.history_vr_vec)
                 self.distance_travelled_vec.append(self.distance_travelled)
                 print( '#{} \t Success \t [tg:  {:.2f}] \t [total collision times:{}]'.format(self.sim_times, self.time_to_goal, self.collision_times))
+                # time.sleep(5)
                 break
             else :
                 self.move_obstacles()   # Move obstacles
@@ -400,7 +401,7 @@ class NewDWA:
        
 if __name__ == '__main__':
     env = Environment(NewDWA, 20)
-    while env.sim_times < 10:
+    while env.sim_times < 100:
         env.run()
 
     env.avg_tg = sum(env.tg_vec)/len(env.tg_vec)

@@ -447,8 +447,8 @@ class DWA:
 
        
 if __name__ == '__main__':
-    env = Environment(DWA, 10)
-    while env.sim_times < 10:
+    env = Environment(DWA, 20)
+    while env.sim_times < 100:
         env.run()
         
     env.avg_tg = sum(env.tg_vec)/len(env.tg_vec)
