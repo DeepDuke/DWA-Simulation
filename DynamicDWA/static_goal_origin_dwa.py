@@ -12,6 +12,10 @@ from matplotlib import pyplot as plt
 from pygame.locals import *
 
 
+# Set random seed
+random.seed(0)
+
+
 class Environment:
     """ Simulation Environment contains moving obstacles 
         and agent which performs collision aovidance algorithm.
@@ -61,9 +65,11 @@ class Environment:
         self.sim_times = 0  # num of simulation times
         self.collision_times = 0  # num of collision times during all simulations
         self.avg_tg = 0
+        self.avg_distance_travelled = 0
         self.tg_vec = []
         self.vl_vec = []
         self.vr_vec = []
+        self.distance_travelled_vec = []
         # Set moving things
         self.reset()
     
@@ -87,6 +93,8 @@ class Environment:
         self.collision_happened = False
         # Reset time to reach the goal
         self.time_to_goal = 0.0
+        # Reset distance_travelled
+        self.distance_travelled = 0
         # Record robot's history positions and paths
         self.history_positions = []
         self.history_vl_vec = []
@@ -199,6 +207,7 @@ class Environment:
         while self.sim_over == False:
             # Start simulation
             self.time_to_goal += self.dt
+            self.distance_travelled += self.agent.linear_vel * self.dt
             predicted_path_to_draw = []
             # Save robot's locations for display of trail
             self.history_positions.append((self.agent.x, self.agent.y))
@@ -215,15 +224,15 @@ class Environment:
                 self.sim_over = True
                 self.sim_times += 1
                 print('#{} \t Failure \t [tg:  None] \t  [total collision times:{}]'.format(self.sim_times, self.collision_times))
-                time.sleep(1)
+                # time.sleep(1)
                 break
             elif round(dist_to_goal, 3) < self.agent.ROBOT_RADIUS:
                 self.sim_over = True
                 self.sim_times += 1
                 self.tg_vec.append(self.time_to_goal)
+                self.distance_travelled_vec.append(self.distance_travelled)
                 self.vl_vec.extend(self.history_vl_vec)
                 self.vr_vec.extend(self.history_vr_vec)
-                self.avg_tg = ((self.sim_times - 1)*self.avg_tg+self.time_to_goal)/self.sim_times
                 print( '#{} \t Success \t [tg:  {:.2f}] \t [total collision times:{}]'.format(self.sim_times, self.time_to_goal, self.collision_times))
                 break
             else:
@@ -255,9 +264,9 @@ class DWA:
         # Safe distance between robot and closest obstacle after minus robot's radius and obstacle's radius
         self.SAFE_DIST = self.ROBOT_RADIUS   #  
         # Weights for predicted trajectory evaluation
-        self.heading_gain = 50
-        self.dist_obstacle_gain = 35
-        self.vel_gain = 2
+        self.heading_gain = 2  #50
+        self.dist_obstacle_gain = 5  #35
+        self.vel_gain = 1  #2  
 
 
     def predict_position(self, vLpossible, vRpossible, delta_time):
@@ -442,21 +451,30 @@ if __name__ == '__main__':
     while env.sim_times < 10:
         env.run()
         
-    print("\n" + "* "*30 + "\n")
-    print("Collision Rate:\t[{}/{}={:.2f}%]".format(
-        env.collision_times, 
-        env.sim_times, 
-        env.collision_times/(env.sim_times)*100)
-        )
-    print('Average time to goal:\t{:.2f} secs'.format(env.avg_tg))
-    print("\n" + "* "*30 + "\n")
-    
-    # Save tg_vec into txt file
+    env.avg_tg = sum(env.tg_vec)/len(env.tg_vec)
+    env.avg_distance_travelled = sum(env.distance_travelled_vec)/len(env.distance_travelled_vec)
+  
+    # Save tg_vec into csv file
     tg_file = pd.DataFrame(data=env.tg_vec, columns=["tg"])
-    tg_file.to_csv("static_new_dwa_tg{}.csv".format(env.init_obstacle_num))
+    tg_file.to_csv("static_goal_orgin_dwa_tg{}.csv".format(env.init_obstacle_num))
     vel_vec = [[env.vl_vec[idx], env.vr_vec[idx]] for idx in range(len(env.vl_vec))]
     vel_file = pd.DataFrame(data=vel_vec, columns=["vl", "vr"])
-    vel_file.to_csv("static_new_dwa_vel{}.csv".format(env.init_obstacle_num))
+    vel_file.to_csv("static_goal_origin_dwa_vel{}.csv".format(env.init_obstacle_num))
+    # sort tg_vec
+    tg_vec_sorted = sorted(env.tg_vec)
+    tg_75th = tg_vec_sorted[int(0.75*len(tg_vec_sorted))-1]
+    tg_90th = tg_vec_sorted[int(0.90*len(tg_vec_sorted))-1]
+
+    # Save printed varibles into txt
+    res_str1 = '[Collision Rate: {}/{}={:.2f}%] \n'.format(env.collision_times, env.sim_times, env.collision_times/env.sim_times*100)
+    res_str2 = '[Average time to goal: {:.2f} secs] \t [tg_75th: {:.2f} secs] \t [tg_90th: {:.2f} secs] \n'.format(env.avg_tg, tg_75th, tg_90th)
+    res_str3 = '[Average distance travelled to goal: \t {:.2f} meters] \n'.format(env.avg_distance_travelled)
+    to_txt = res_str1 + res_str2 + res_str3
+    print("\n" + "* "*30 + "\n")
+    print(to_txt)
+    print("\n" + "* "*30 + "\n")
+    with open('static_orgin_dwa_result{}.txt'.format(env.init_obstacle_num), 'w') as f:
+        f.write(to_txt)
     # Plot
     plt.figure()
     plt.plot(list(range(len(env.tg_vec))), env.tg_vec, 'bo', list(range(len(env.tg_vec))), env.tg_vec, 'k')

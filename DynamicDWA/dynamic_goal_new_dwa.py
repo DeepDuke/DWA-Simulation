@@ -7,6 +7,10 @@ import pandas as pd
 from matplotlib import pyplot as plt 
 
 
+# Set random seed
+random.seed(0)
+
+
 class Environment:
     """ Simulation Environment contains moving obstacles 
         and agent which performs collision aovidance algorithm.
@@ -54,9 +58,11 @@ class Environment:
         self.sim_times = 0  # num of simulation times
         self.collision_times = 0  # num of collision times during all simulations
         self.avg_tg = 0
+        self.avg_distance_travelled = 0
         self.tg_vec = []
         self.vl_vec = []
         self.vr_vec = []
+        self.distance_travelled_vec = []
         # Set moving things
         self.reset()
         
@@ -64,6 +70,8 @@ class Environment:
     def reset(self):
         # Reset time to reach the goal in one simulation
         self.time_to_goal = 0.0
+        # Reset distance_travelled
+        self.distance_travelled = 0
         # Reset obstacles list
         self.obstacles = []  # obstalces list
         for i in range(self.init_obstacle_num):
@@ -194,6 +202,7 @@ class Environment:
         while self.sim_over == False:
             # Start simulation
             self.time_to_goal += self.dt
+            self.distance_travelled += self.agent.linear_vel * self.dt
             predicted_path_to_draw = []
             # Save robot's locations for display of trail
             self.history_positions.append((self.agent.x, self.agent.y))
@@ -220,7 +229,7 @@ class Environment:
                 self.tg_vec.append(self.time_to_goal)
                 self.vl_vec.extend(self.history_vl_vec)
                 self.vr_vec.extend(self.history_vr_vec)
-                self.avg_tg = ((self.sim_times - 1)*self.avg_tg+self.time_to_goal)/self.sim_times
+                self.distance_travelled_vec.append(self.distance_travelled)
                 print( '#{} \t Success \t [tg:  {:.2f}] \t [total collision times:{}]'.format(self.sim_times, self.time_to_goal, self.collision_times))
                 break
             else :
@@ -391,24 +400,34 @@ class NewDWA:
        
 if __name__ == '__main__':
     env = Environment(NewDWA, 20)
-    while env.sim_times < 100:
+    while env.sim_times < 10:
         env.run()
 
+    env.avg_tg = sum(env.tg_vec)/len(env.tg_vec)
+    env.avg_distance_travelled = sum(env.distance_travelled_vec)/len(env.distance_travelled_vec)
+
+    # sort tg_vec
+    tg_vec_sorted = sorted(env.tg_vec)
+    tg_75th = tg_vec_sorted[int(0.75*len(tg_vec_sorted))-1]
+    tg_90th = tg_vec_sorted[int(0.90*len(tg_vec_sorted))-1]
+
+    # Save printed varibles into txt
+    res_str1 = '[Collision Rate: {}/{}={:.2f}%] \n'.format(env.collision_times, env.sim_times, env.collision_times/env.sim_times*100)
+    res_str2 = '[Average time to goal: {:.2f} secs] \t [tg_75th: {:.2f} secs] \t [tg_90th: {:.2f} secs] \n'.format(env.avg_tg, tg_75th, tg_90th)
+    res_str3 = '[Average distance travelled to goal: \t {:.2f} meters] \n'.format(env.avg_distance_travelled)
+    to_txt = res_str1 + res_str2 + res_str3
     print("\n" + "* "*30 + "\n")
-    print("Collision Rate:\t[{}/{}={:.2f}%]".format(
-        env.collision_times, 
-        env.sim_times, 
-        env.collision_times/(env.sim_times)*100)
-        )
-    print('Average time to goal:\t{:.2f} secs'.format(env.avg_tg))
+    print(to_txt)
     print("\n" + "* "*30 + "\n")
+    with open('dynamic_goal_new_dwa_result{}.txt'.format(env.init_obstacle_num), 'w') as f:
+        f.write(to_txt)
     
     # Save tg_vec into txt file
     tg_file = pd.DataFrame(data=env.tg_vec, columns=["tg"])
-    tg_file.to_csv("dynamic_new_dwa_tg{}.csv".format(env.init_obstacle_num-1))
+    tg_file.to_csv("dynamic_goal_new_dwa_tg{}.csv".format(env.init_obstacle_num-1))
     vel_vec = [[env.vl_vec[idx], env.vr_vec[idx]] for idx in range(len(env.vl_vec))]
     vel_file = pd.DataFrame(data=vel_vec, columns=["vl", "vr"])
-    vel_file.to_csv("dynamic_new_dwa_vel{}.csv".format(env.init_obstacle_num-1))
+    vel_file.to_csv("dynamic_goal_new_dwa_vel{}.csv".format(env.init_obstacle_num-1))
     # Plot
     plt.figure()
     plt.plot(list(range(len(env.tg_vec))), env.tg_vec, 'bo', list(range(len(env.tg_vec))), env.tg_vec, 'k')
