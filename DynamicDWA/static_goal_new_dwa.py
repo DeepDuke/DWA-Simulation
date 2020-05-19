@@ -51,9 +51,9 @@ class Environment:
         # Initiate robot's goal
         self.goal = (self.PLAYFIELDCORNERS[2]-0.5, self.PLAYFIELDCORNERS[3]-0.5)
         # Initiate pose of robot
-        self.init_x = self.PLAYFIELDCORNERS[0] + 0.5
+        self.init_x = self.PLAYFIELDCORNERS[0] + 3
         self.init_y = self.PLAYFIELDCORNERS[1] + 0.5
-        self.init_theta = 0.0
+        self.init_theta = math.pi/2
         self.init_pose = (self.init_x, self.init_y, self.init_theta)
         self.config = (self.dt, self.k, self.u0, self.v0, self.OBSTACLE_RADIUS)
         # Global parameters for evaluate algorithms
@@ -119,7 +119,15 @@ class Environment:
         for (idx, obstacle) in enumerate(self.obstacles):
             color = self.lightblue
             pygame.draw.circle(self.screen, color, (int(self.u0 + self.k * obstacle[0]), int(self.v0 - self.k * obstacle[1])), int(self.k * self.OBSTACLE_RADIUS), 0)
-
+            # path in steps*dt time
+            steps = 10
+            linestart = (self.u0 + self.k * obstacle[0], self.v0 - self.k * obstacle[1])
+            maxPathLen = self.OBSTACLE_MAX_VEL * steps * self.dt
+            dx = obstacle[2]*steps*self.dt
+            dy = obstacle[3]*steps*self.dt
+            dx, dy = dx/math.sqrt(dx**2 + dy**2)*maxPathLen, dy/math.sqrt(dx**2 + dy**2)*maxPathLen
+            lineend = (self.u0 + self.k * (obstacle[0] + dx), self.v0 - self.k * (obstacle[1] + dy))
+            pygame.draw.line(self.screen, (200, 0, 0), linestart, lineend, 5)
 
     def draw_goal(self):
         """ Draw the goal of robot on screen """
@@ -408,7 +416,9 @@ if __name__ == '__main__':
     env = Environment(NewDWA, 20)
     while env.sim_times < 100:
         env.run()
-        
+    
+    ## Please Uncomment the following lines to  save simalution data
+
     env.avg_tg = sum(env.tg_vec)/len(env.tg_vec)
     env.avg_distance_travelled = sum(env.distance_travelled_vec)/len(env.distance_travelled_vec)
 

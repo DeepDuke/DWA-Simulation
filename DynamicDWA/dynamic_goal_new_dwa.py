@@ -118,6 +118,15 @@ class Environment:
                 continue
             color = self.lightblue
             pygame.draw.circle(self.screen, color, (int(self.u0 + self.k * obstacle[0]), int(self.v0 - self.k * obstacle[1])), int(self.k * self.OBSTACLE_RADIUS), 0)
+            # path in steps*dt time
+            steps = 10
+            linestart = (self.u0 + self.k * obstacle[0], self.v0 - self.k * obstacle[1])
+            maxPathLen = self.OBSTACLE_MAX_VEL * steps * self.dt
+            dx = obstacle[2]*steps*self.dt
+            dy = obstacle[3]*steps*self.dt
+            dx, dy = dx/math.sqrt(dx**2 + dy**2)*maxPathLen, dy/math.sqrt(dx**2 + dy**2)*maxPathLen
+            lineend = (self.u0 + self.k * (obstacle[0] + dx), self.v0 - self.k * (obstacle[1] + dy))
+            pygame.draw.line(self.screen, (200, 0, 0), linestart, lineend, 5)
 
 
     def draw_goal(self):
@@ -133,7 +142,7 @@ class Environment:
         radius = self.agent.ROBOT_RADIUS
         position = (self.agent.x, self.agent.y) 
         pygame.draw.circle(self.screen, color, (int(self.u0 + self.k * position[0]), int(self.v0 - self.k * position[1])), int(self.k * radius), 3)
-
+   
     
     def draw_history_trajectory(self):
         """ Draw trajectory of moving robot """
@@ -167,7 +176,7 @@ class Environment:
                 if (path[1][1][0] > 0 and path[1][0][0] > 0 and path[1][1][1] > 1):
                     #print (path[1], startangle, stopangle)
                     pygame.draw.arc(self.screen, (0, 200, 0), path[1], startangle, stopangle, 1)
-
+    
 
     def draw_frame(self, predicted_path_to_draw):
         """ Draw each frame of simulation on screen"""
@@ -198,6 +207,7 @@ class Environment:
     def run(self):
         """ Do simulation """
         if self.sim_over == True:
+            # time.sleep(2)
             self.reset()
         while self.sim_over == False:
             # Start simulation
@@ -256,7 +266,7 @@ class NewDWA:
         self.x, self.y, self.theta = init_pose
         # Parameters for prediction trajectory
         self.dt, self.k, self.u0, self.v0, self.OBSTACLE_RADIUS = config
-        self.STEPS_AHEAD_TO_PLAN = 10
+        self.STEPS_AHEAD_TO_PLAN = 5
         self.TAU = self.dt * self.STEPS_AHEAD_TO_PLAN
         # Safe distance between robot and closest obstacle after minus robot's radius and obstacle's radius
         self.SAFE_DIST = self.MAX_VEL_LINEAR**2/(2*self.MAX_ACC_LINEAR)
@@ -403,6 +413,8 @@ if __name__ == '__main__':
     env = Environment(NewDWA, 20)
     while env.sim_times < 100:
         env.run()
+
+    ## Please Uncomment the following lines to  save simalution data
 
     env.avg_tg = sum(env.tg_vec)/len(env.tg_vec)
     env.avg_distance_travelled = sum(env.distance_travelled_vec)/len(env.distance_travelled_vec)
